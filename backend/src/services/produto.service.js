@@ -31,8 +31,20 @@ async function buscarProdutoUnico(id) {
 
 async function adicionarProduto(produto) {
   const id = uuidv4();
+  const categoriasPermitidas = ['Refeição', 'Bebida'];
 
-  const categoriasPermitidas = ['refeicao', 'bebida'];
+  if(!produto.nome || produto.nome.trim() === '') {
+    throw new Error('O nome do produto é obrigatório.');
+  }
+
+  if(!produto.categoria || produto.categoria.trim() === '') {
+    throw new Error('A categoria do produto é obrigatória.');
+  }
+
+  if(!produto.preco || isNaN(produto.preco) || produto.preco < 0) {
+    throw new Error('O preço do produto deve ser um número positivo.');
+  }
+
   if(!categoriasPermitidas.includes(produto.categoria)) {
     throw new Error('Categoria inválida. As categorias permitidas são: refeicao, bebida.');
   }
