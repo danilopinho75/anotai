@@ -24,7 +24,8 @@
           <label class="text-sm font-semibold text-gray-700">Preço:</label>
           <input
           v-model="novoProduto.preco"
-          type="text"
+          type="number"
+          step="0.1"
           placeholder="Preço do produto"
           class="p-2 border border-gray-300 rounded"
           />
