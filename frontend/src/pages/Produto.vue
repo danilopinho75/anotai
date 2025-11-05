@@ -48,22 +48,78 @@
         </thead>
         <tbody>
           <tr class="hover:bg-gray-100 transition duration-500 border-b border-b-gray-200 text-gray-600" v-for="produto in produtos" :key="produto.id">
-            <td class="p-3">{{produto.nome}}</td>
-            <td class="p-3">{{produto.categoria}}</td>
-            <td class="p-3">R$ {{produto.preco}}</td>
             <td class="p-3">
-              <button 
-                class="mr-3 p-3 bg-yellow-100 hover:bg-yellow-200 border border-transparent hover:border-yellow-300 rounded-xl transition duration-500"                
-                @click="editarProduto(produto.id)"
-              >
-                <PencilSquareIcon class="w-6 h-6 text-yellow-500" />
-              </button>
-              <button 
-                class="bg-red-100 rounded-xl p-3 border border-transparent cursor-pointer hover:bg-red-200 hover:border-red-300 transition duration-500"
-                @click="excluirProduto(produto.id)"
-              >
-                <TrashIcon class="w-6 h-6 text-red-500" />
-              </button>
+              <template v-if="editandoId === produto.id">
+                <input 
+                  v-model="produtoEditando.nome"
+                  type="text"
+                  class="p-2 border border-gray-300 rounded focus:outline-none focus:border-gray-700 transition duration-500"
+                />
+              </template>
+              <template v-else>
+                {{ produto.nome }}
+              </template>
+            </td>
+
+            <td class="p-3">
+              <template v-if="editandoId === produto.id">
+                <select
+                  v-model="produtoEditando.categoria"
+                  class="w-40 p-2 border border-gray-300 rounded"
+                >
+                  <option value="Refeição">Refeição</option>
+                  <option value="Bebida">Bebida</option>
+              </select>
+              </template>
+              <template v-else>
+                {{ produto.categoria }}
+              </template>
+            </td>
+
+            <td class="p-3">
+              <template v-if="produtoEditando.id === produto.id">
+                <input
+                  v-model.number="produtoEditando.preco"
+                  type="number"
+                  step="0.1"
+                  placeholder="Preço"
+                  class="p-2 border border-gray-300 rounded"
+                />
+              </template>
+              <template v-else>
+                R$ {{produto.preco}}
+              </template>
+            </td>
+
+            <td class="p-3">
+              <template v-if="produtoEditando.id === produto.id">
+                <button 
+                  class="mr-3 p-2 bg-green-500 hover:bg-green-400 border border-transparent cursor-pointer hover:border-green-500 rounded-xl transition duration-500"                
+                  @click="salvarEdicaoProduto()"
+                >
+                  <CheckIcon class="w-4 h-4 text-white" />
+                </button>
+                <button 
+                  class="bg-red-500 rounded-xl p-2 border border-transparent cursor-pointer hover:bg-red-400 hover:border-red-500 transition duration-500"
+                  @click="cancelarEdicao()"
+                >
+                  <XMarkIcon class="w-4 h-4 text-white" />
+                </button>
+              </template>
+              <template v-else>
+                <button 
+                  class="mr-3 p-2 bg-yellow-400 hover:bg-yellow-300 border border-transparent cursor-pointer hover:border-yellow-500 rounded-xl transition duration-500"                
+                  @click="editarProduto(produto.id)"
+                >
+                  <PencilSquareIcon class="w-4 h-4 text-white" />
+                </button>
+                <button 
+                  class="bg-red-400 rounded-xl p-2 border border-transparent cursor-pointer hover:bg-red-300 hover:border-red-500 transition duration-500"
+                  @click="excluirProduto(produto.id)"
+                >
+                  <TrashIcon class="w-4 h-4 text-white" />
+                </button>
+              </template>
             </td>
           </tr>
         </tbody>
@@ -75,7 +131,7 @@
 <script setup>
   import { ref, onMounted } from 'vue';
   import axios from 'axios';
-  import { PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline';
+  import { CheckIcon, PencilSquareIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
 
   const produtos = ref([]);
   const novoProduto = ref({
@@ -83,12 +139,12 @@
     categoria: 'Refeição',
     preco: 0
   });
+  const editandoId = ref(null);
+  const produtoEditando = ref({});
   const apiUrl = import.meta.env.VITE_API_URL;
 
   async function carregarProdutos() {
     try {
-      console.log('API URL:', import.meta.env.VITE_API_URL);
-
       const response = await axios.get(`${apiUrl}/produtos`);
       produtos.value = response.data;
     } catch (error) {
@@ -116,14 +172,38 @@
     }
   }
 
-  // async function editarProduto(id) {
-  //   const produtoParaEditar = produtos.value.find(produto => produto.id === id);
-  // }
+  async function editarProduto(id) {
+    try {
+      const response = await axios.get(`${apiUrl}/produtos/${id}`);
+      console.log(`Dados do produto com id ${id}: ${response.data}`);
+      produtoEditando.value = response.data;
+      editandoId.value = id;
+    } catch (error) {
+      console.error('Erro ao buscar produto para edição:', error);
+      alert('Erro ao buscar produto para edição. Por favor, tente novamente.');
+    }
+  }
+
+  async function cancelarEdicao() {
+    editandoId.value = null;
+    produtoEditando.value = {};
+  }
+
+  async function salvarEdicaoProduto() {
+    try {
+      await axios.put(`${apiUrl}/produtos/${editandoId.value}`, produtoEditando.value);
+      await carregarProdutos();
+      await cancelarEdicao();
+    } catch (error) {
+      console.error('Erro ao salvar edição do produto:', error);
+      alert('Erro ao salvar edição do produto. Por favor, tente novamente.');
+    }
+  }
 
   async function excluirProduto(id) {
     try {
       await axios.delete(`${apiUrl}/produtos/${id}`);
-      produtos.value = produtos.value.filter(produto => produto.id !== id);
+      await carregarProdutos();
       alert('Produto excluído com sucesso!');
     } catch (error) {
       console.error('Erro ao excluir produto:', error);
